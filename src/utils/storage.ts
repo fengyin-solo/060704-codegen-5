@@ -1,11 +1,13 @@
-import type { Diary, User, InventoryItem, ArchivedDiary } from '@/types'
+import type { Diary, User, InventoryItem, ArchivedDiary, TreasureHunt, TreasureHuntProgress } from '@/types'
 
 const STORAGE_KEYS = {
   CURRENT_USER: 'glitch_diary_current_user',
   USERS: 'glitch_diary_users',
   DIARIES: 'glitch_diary_diaries',
   INVENTORY: 'glitch_diary_inventory_',
-  ARCHIVED_DIARIES: 'glitch_diary_archived_diaries'
+  ARCHIVED_DIARIES: 'glitch_diary_archived_diaries',
+  TREASURE_HUNTS: 'glitch_diary_treasure_hunts_',
+  TREASURE_PROGRESS: 'glitch_diary_treasure_progress_'
 }
 
 export const storage = {
@@ -55,5 +57,28 @@ export const storage = {
 
   saveArchivedDiaries(archivedDiaries: ArchivedDiary[]): void {
     localStorage.setItem(STORAGE_KEYS.ARCHIVED_DIARIES, JSON.stringify(archivedDiaries))
+  },
+
+  getTreasureHunts(userId: string): TreasureHunt[] {
+    const data = localStorage.getItem(STORAGE_KEYS.TREASURE_HUNTS + userId)
+    return data ? JSON.parse(data) : []
+  },
+
+  saveTreasureHunts(userId: string, hunts: TreasureHunt[]): void {
+    localStorage.setItem(STORAGE_KEYS.TREASURE_HUNTS + userId, JSON.stringify(hunts))
+  },
+
+  getTreasureProgress(userId: string): TreasureHuntProgress {
+    const data = localStorage.getItem(STORAGE_KEYS.TREASURE_PROGRESS + userId)
+    return data ? JSON.parse(data) : {
+      currentHuntId: null,
+      completedHuntIds: [],
+      totalRewardsClaimed: 0,
+      lastHuntTime: null
+    }
+  },
+
+  saveTreasureProgress(userId: string, progress: TreasureHuntProgress): void {
+    localStorage.setItem(STORAGE_KEYS.TREASURE_PROGRESS + userId, JSON.stringify(progress))
   }
 }

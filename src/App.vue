@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useInventoryStore } from '@/stores/inventory'
+import { useTreasureStore } from '@/stores/treasure'
 import { pluginLoader } from '@/engine/PluginLoader'
 import NavBar from '@/components/common/NavBar.vue'
 
@@ -42,6 +43,9 @@ function handleLogin(userName: string) {
   
   const inventoryStore = useInventoryStore()
   inventoryStore.init(user.id)
+  
+  const treasureStore = useTreasureStore()
+  treasureStore.init(user.id)
   
   router.push('/')
 }

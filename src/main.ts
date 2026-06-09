@@ -7,6 +7,7 @@ import { pluginLoader } from './engine/PluginLoader'
 import { useUserStore } from './stores/user'
 import { useDiaryStore } from './stores/diary'
 import { useInventoryStore } from './stores/inventory'
+import { useTreasureStore } from './stores/treasure'
 
 async function initApp() {
   await pluginLoader.loadAll()
@@ -26,6 +27,9 @@ async function initApp() {
   if (userStore.currentUserId) {
     const inventoryStore = useInventoryStore()
     inventoryStore.init(userStore.currentUserId)
+    
+    const treasureStore = useTreasureStore()
+    treasureStore.init(userStore.currentUserId)
   }
   
   app.mount('#app')

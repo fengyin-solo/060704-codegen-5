@@ -236,3 +236,52 @@ export const TIME_PERIOD_NAMES: Record<TimePeriod, string> = {
   [TimePeriod.YEAR]: '年度珍藏',
   [TimePeriod.ALL]: '全部时光'
 }
+
+export enum TreasureHuntState {
+  AVAILABLE = 'available',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CLAIMED = 'claimed'
+}
+
+export const TREASURE_HUNT_STATE_NAMES: Record<TreasureHuntState, string> = {
+  [TreasureHuntState.AVAILABLE]: '可领取',
+  [TreasureHuntState.IN_PROGRESS]: '进行中',
+  [TreasureHuntState.COMPLETED]: '已完成',
+  [TreasureHuntState.CLAIMED]: '已领取'
+}
+
+export interface TreasureClue {
+  id: string
+  type: 'hall' | 'section' | 'diaryType' | 'title' | 'author' | 'decayMethod'
+  hint: string
+  value: string
+}
+
+export interface TreasureReward {
+  itemId: string
+  count: number
+}
+
+export interface TreasureHunt {
+  id: string
+  title: string
+  description: string
+  icon: string
+  targetDiaryId: string
+  clues: TreasureClue[]
+  rewards: TreasureReward[]
+  state: TreasureHuntState
+  startTime: number
+  endTime: number | null
+  completedAt: number | null
+  claimedAt: number | null
+  hintUnlocked: number
+}
+
+export interface TreasureHuntProgress {
+  currentHuntId: string | null
+  completedHuntIds: string[]
+  totalRewardsClaimed: number
+  lastHuntTime: number | null
+}
