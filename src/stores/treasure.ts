@@ -195,7 +195,9 @@ export const useTreasureStore = defineStore('treasure', () => {
     const publicDiaries = diaryStore.publicDiaries
     const halls = diaryStore.getGalleryHalls()
 
-    if (publicDiaries.length === 0) return
+    if (publicDiaries.length === 0) {
+      return
+    }
 
     const huntCount = Math.min(5, publicDiaries.length)
     const shuffled = [...publicDiaries].sort(() => Math.random() - 0.5)
@@ -209,17 +211,61 @@ export const useTreasureStore = defineStore('treasure', () => {
     save(getCurrentUserId())
   }
 
-  function generateNewHunt(): TreasureHunt | null {
+  function hasPublicDiaries(): boolean {
+    const diaryStore = getDiaryStore()
+    return diaryStore.publicDiaries.length > 0
+  }
+
+  function getPublicDiaryCount(): number {
+    const diaryStore = getDiaryStore()
+    return diaryStore.publicDiaries.length
+  }
+
+  function generateNewHunt(recursionDepth: number = 0): TreasureHunt | null {
+    if (recursionDepth > 3) {
+      return null
+    }
+
     const diaryStore = getDiaryStore()
     const publicDiaries = diaryStore.publicDiaries
     const halls = diaryStore.getGalleryHalls()
 
+    if (publicDiaries.length === 0) {
+      return null
+    }
+
     const usedDiaryIds = hunts.value.map(h => h.targetDiaryId)
-    const availableDiaries = publicDiaries.filter(d => !usedDiaryIds.includes(d.id))
+    let availableDiaries = publicDiaries.filter(d => !usedDiaryIds.includes(d.id))
 
     if (availableDiaries.length === 0) {
+      const prevLength = hunts.value.length
       hunts.value = hunts.value.filter(h => h.state !== THS.CLAIMED)
-      return generateNewHunt()
+      
+      if (hunts.value.length === prevLength) {
+        const allUsedIds = hunts.value.map(h => h.targetDiaryId)
+        availableDiaries = publicDiaries.filter(d => !allUsedIds.includes(d.id))
+        
+        if (availableDiaries.length === 0) {
+          const randomDiary = publicDiaries[Math.floor(Math.random() * publicDiaries.length)]
+          const existingHunt = hunts.value.find(h => h.targetDiaryId === randomDiary.id)
+          
+          if (existingHunt && existingHunt.state === THS.AVAILABLE) {
+            return existingHunt
+          }
+          
+          if (existingHunt && existingHunt.state !== THS.IN_PROGRESS) {
+            existingHunt.state = THS.AVAILABLE
+            existingHunt.completedAt = null
+            existingHunt.claimedAt = null
+            save(getCurrentUserId())
+            return existingHunt
+          }
+          
+          return null
+        }
+      }
+      
+      return generateNewHunt(recursionDepth + 1)
     }
 
     const randomDiary = availableDiaries[Math.floor(Math.random() * availableDiaries.length)]
@@ -322,13 +368,28 @@ export const useTreasureStore = defineStore('treasure', () => {
   }
 
   function refreshHunts(): void {
+    const diaryStore = getDiaryStore()
+    const publicDiaries = diaryStore.publicDiaries
+    
+    if (publicDiaries.length === 0) {
+      return
+    }
+
     const activeCount = activeHunts.value.length
     const availableCount = availableHunts.value.length
 
     if (availableCount < 2) {
-      const needed = 3 - availableCount
-      for (let i = 0; i < needed; i++) {
-        generateNewHunt()
+      const needed = Math.min(3 - availableCount, publicDiaries.length)
+      let generated = 0
+      let attempts = 0
+      const maxAttempts = needed * 2
+
+      while (generated < needed && attempts < maxAttempts) {
+        const result = generateNewHunt()
+        if (result) {
+          generated++
+        }
+        attempts++
       }
     }
 
@@ -356,6 +417,8 @@ export const useTreasureStore = defineStore('treasure', () => {
     getVisibleClues,
     refreshHunts,
     generateNewHunt,
+    hasPublicDiaries,
+    getPublicDiaryCount,
     HINT_UNLOCK_COST,
     MAX_ACTIVE_HUNTS
   }

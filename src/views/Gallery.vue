@@ -50,25 +50,40 @@ const currentHuntTitle = computed(() => {
   return treasureStore.currentHunt?.title || ''
 })
 
+const canStartTreasureHunt = computed(() => {
+  return totalExhibitCount.value > 0
+})
+
 async function init() {
   isLoading.value = true
-  await pluginLoader.loadAll()
-  halls.value = diaryStore.getGalleryHalls()
-  
-  if (userStore.currentUserId) {
-    inventoryStore.init(userStore.currentUserId)
-    treasureStore.init(userStore.currentUserId)
-    treasureStore.refreshHunts()
-  }
-  
-  if (halls.value.length > 0) {
-    currentHallId.value = halls.value[0].id
-    if (halls.value[0].sections.length > 0) {
-      currentSectionId.value = halls.value[0].sections[0].id
+  try {
+    await pluginLoader.loadAll()
+    halls.value = diaryStore.getGalleryHalls()
+    
+    if (userStore.currentUserId) {
+      inventoryStore.init(userStore.currentUserId)
+      treasureStore.init(userStore.currentUserId)
+      
+      if (canStartTreasureHunt.value) {
+        try {
+          treasureStore.refreshHunts()
+        } catch (e) {
+          console.warn('Refresh hunts failed:', e)
+        }
+      }
     }
+    
+    if (halls.value.length > 0) {
+      currentHallId.value = halls.value[0].id
+      if (halls.value[0].sections.length > 0) {
+        currentSectionId.value = halls.value[0].sections[0].id
+      }
+    }
+  } catch (e) {
+    console.error('Gallery init failed:', e)
+  } finally {
+    isLoading.value = false
   }
-  
-  isLoading.value = false
 }
 
 function handleSelectHall(hallId: string) {
@@ -87,19 +102,27 @@ function handleExhibitClick(exhibit: Exhibit, event: Event) {
   event.stopPropagation()
   
   if (hasActiveHunt.value) {
-    const isMatch = treasureStore.checkDiaryMatch(exhibit.diary.id)
-    if (isMatch) {
-      treasureStore.completeHunt()
-      showSuccess('🎉 恭喜！你找到了目标日记！快去领取奖励吧！')
-      setTimeout(() => {
-        showTreasureModal.value = true
-      }, 1500)
-      return
+    try {
+      const isMatch = treasureStore.checkDiaryMatch(exhibit.diary.id)
+      if (isMatch) {
+        treasureStore.completeHunt()
+        showSuccess('🎉 恭喜！你找到了目标日记！快去领取奖励吧！')
+        setTimeout(() => {
+          showTreasureModal.value = true
+        }, 1500)
+        return
+      }
+    } catch (e) {
+      console.error('Check diary match failed:', e)
     }
   }
 }
 
 function openTreasureModal() {
+  if (!canStartTreasureHunt.value) {
+    showSuccess('📭 暂无公开日记，等待其他用户发布后再试吧！')
+    return
+  }
   showTreasureModal.value = true
 }
 
@@ -120,13 +143,19 @@ onMounted(() => {
   <div class="space-y-6">
     <div class="text-center py-8 bg-gradient-to-b from-gray-900/50 to-transparent rounded-lg relative">
       <button
-        class="absolute top-4 right-4 btn-pixel bg-diary-fresh/20 border-diary-fresh text-diary-fresh px-4 py-2 font-vt323 text-sm flex items-center gap-2 hover:bg-diary-fresh/30 transition-all"
+        class="absolute top-4 right-4 btn-pixel px-4 py-2 font-vt323 text-sm flex items-center gap-2 transition-all"
+        :class="{
+          'bg-diary-fresh/20 border-diary-fresh text-diary-fresh hover:bg-diary-fresh/30': canStartTreasureHunt,
+          'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed': !canStartTreasureHunt
+        }"
+        :disabled="!canStartTreasureHunt"
+        :title="canStartTreasureHunt ? '参与记忆寻宝' : '暂无公开日记，无法开始寻宝'"
         @click="openTreasureModal"
       >
         <span class="text-lg">🗺️</span>
         <span>记忆寻宝</span>
         <span 
-          v-if="treasureStore.activeHunts.length > 0"
+          v-if="canStartTreasureHunt && treasureStore.activeHunts.length > 0"
           class="bg-diary-fresh text-black text-xs px-2 py-0.5 rounded-full"
         >
           {{ treasureStore.activeHunts.length }}

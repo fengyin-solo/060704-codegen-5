@@ -119,12 +119,22 @@ function handleOverlayClick(e: MouseEvent) {
 
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    treasureStore.refreshHunts()
-    if (treasureStore.currentHunt) {
-      selectedHuntId.value = treasureStore.currentHunt.id
-      activeTab.value = 'active'
+    try {
+      if (treasureStore.hasPublicDiaries()) {
+        treasureStore.refreshHunts()
+      }
+      if (treasureStore.currentHunt) {
+        selectedHuntId.value = treasureStore.currentHunt.id
+        activeTab.value = 'active'
+      }
+    } catch (e) {
+      console.error('Refresh hunts in modal failed:', e)
     }
   }
+})
+
+const hasNoDiaries = computed(() => {
+  return !treasureStore.hasPublicDiaries()
 })
 </script>
 
@@ -155,6 +165,16 @@ watch(() => props.show, (newVal) => {
             >
               ✕
             </button>
+          </div>
+
+          <div v-if="hasNoDiaries" class="p-8 text-center bg-gray-900/50 border-b border-gray-800">
+            <div class="text-5xl mb-4 opacity-50">📭</div>
+            <h3 class="font-vt323 text-xl text-gray-400 mb-2">
+              暂无公开日记
+            </h3>
+            <p class="text-gray-500 font-vt323 text-sm">
+              展厅中还没有公开的日记展品，等待其他用户发布日记后再来参与寻宝吧！
+            </p>
           </div>
 
           <div class="flex border-b border-gray-800">
